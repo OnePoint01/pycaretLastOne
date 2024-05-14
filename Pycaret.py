@@ -62,13 +62,6 @@ def handle_missing_values(df,cat_feature):
 # Function to perform EDA
 def perform_eda(df,WantedColumns):
     st.header("EDA")
-    # Correlation Matrix"
-    st.subheader("Correlation Matrix")
-    corr = df[WantedColumns].corr()
-    plt.figure(figsize=(10, 8))
-    sns.heatmap(corr, annot=True, cmap='coolwarm', fmt=".2f", linewidths=0.5)
-    plt.title("Correlation Matrix")
-    st.pyplot()
     # Histograms
     st.subheader("Histograms")
     for col in WantedColumns:
@@ -78,6 +71,15 @@ def perform_eda(df,WantedColumns):
         plt.xlabel(col)
         plt.ylabel("Frequency")
         st.pyplot()
+    
+    # Correlation Matrix"
+    st.subheader("Correlation Matrix")
+    corr = df[WantedColumns].corr()
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(corr, annot=True, cmap='coolwarm', fmt=".2f", linewidths=0.5)
+    plt.title("Correlation Matrix")
+    st.pyplot()
+
 
 # Function to encode categorical data
 def encode_categorical(df,cat_feature):
