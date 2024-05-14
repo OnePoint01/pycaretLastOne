@@ -79,7 +79,7 @@ def perform_eda(df,WantedColumns):
     sns.heatmap(corr, annot=True, cmap='coolwarm', fmt=".2f", linewidths=0.5)
     plt.title("Correlation Matrix")
     st.pyplot()
-
+    return df
 
 # Function to encode categorical data
 def encode_categorical(df,cat_feature):
@@ -97,6 +97,8 @@ def encode_categorical(df,cat_feature):
             final_df = df.join(encoder_df)
             final_df.drop(col, axis=1, inplace=True)
         st.write(df.head())
+
+    return df
 
 # Function to setup and compare models
 def setup_and_compare_models(df, target_col):
