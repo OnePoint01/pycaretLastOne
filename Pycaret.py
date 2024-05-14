@@ -181,7 +181,7 @@ if uploaded_file is not None:
             df = perform_eda(df,WantedColumns)
             
     # ask user to how to encode categorical data ( one hot or label encoding )        
-    if cat_feature:
+    if cat_feature != 0:
         encode_categorical(df,cat_feature)
         
     # Ask user for the target column
