@@ -32,6 +32,16 @@ def drop_columns(df,dropped_columns):
 def handle_missing_values(df,cat_feature):
     st.header("Handle Missing Values")
     le = LabelEncoder()
+
+    # ask user to how to handle missing values for numerical columns ( mean or median or mode)
+    st.header("Numerical Columns")
+    num_feature = df.select_dtypes(['int64', 'float64']).columns
+    HMV_num = st.radio("How do you want to handle missing values for numerical columns?", ["mean", "median","mode"])
+    for col in num_feature:
+        df[col] = SimpleImputer(strategy=HMV_num, missing_values=np.nan).fit_transform(df[col].values.reshape(-1, 1))
+    if (len(num_feature) != 0):
+        st.write(num_feature)
+    
     # ask user to how to handle missing values for categorical columns ( mode or additional class)
     st.header("Categorical Columns")
     HMV_cat = st.radio("How do you want to handle missing values for categorical columns?", ['most frequent', "mode"])
@@ -40,21 +50,8 @@ def handle_missing_values(df,cat_feature):
             df[col] = SimpleImputer(strategy='HMV_cat', missing_values=np.nan).fit_transform(df[col].values.reshape(-1, 1))
         else:
             df[col] = le.fit_transform(df[col])
-
     if (len(cat_feature) != 0):
         st.write(cat_feature)
-
-    
-    # ask user to how to handle missing values for numerical columns ( mean or median or mode)
-    st.header("Numerical Columns")
-    num_feature = df.select_dtypes(['int64', 'float64']).columns
-    HMV_num = st.radio("How do you want to handle missing values for numerical columns?", ["mean", "median","mode"])
-
-    for col in num_feature:
-        df[col] = SimpleImputer(strategy=HMV_num, missing_values=np.nan).fit_transform(df[col].values.reshape(-1, 1))
-
-    if (len(num_feature) != 0):
-        st.write(num_feature)
 
     if (len(cat_feature) != 0 or len(num_feature) != 0):
         st.header("Number of null values")
