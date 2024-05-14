@@ -30,16 +30,16 @@ def display_df_info(df):
 # Function to drop selected columns
 def drop_columns(df,dropped_columns):
     st.header("Columns removal")
+    st.write('Column Names:', df.drop(dropped_columns, axis=1))
     df = df.drop(dropped_columns, axis=1)
     return df
 
 
 # Function to handle missing values
-def handle_missing_values(df):
+def handle_missing_values(df,cat_feature):
     st.header("Handle Missing Values")
     le = LabelEncoder()
     # ask user to how to handle missing values for categorical columns ( mode or additional class)
-    cat_feature = df.select_dtypes(['object']).columns
     HMV_cat = st.radio("How do you want to handle missing values for categorical columns?", ['most frequent', "mode"])
     for col in cat_feature:
         if df[col].nunique() > 7:
@@ -67,7 +67,7 @@ def handle_missing_values(df):
         st.header("Number of null values")
         st.write(df.isna().sum())
     
-    return df,cat_feature
+    return df
 
 # Function to perform EDA
 def perform_eda(df,WantedColumns):
@@ -168,9 +168,10 @@ if uploaded_file is not None:
         df = drop_columns(df,dropped_columns)
     
     # Ask the user if he would like to Handle missing values
+    cat_feature = df.select_dtypes(['object']).columns
     isHMV = st.sidebar.checkbox("Handle Missing Values?")
     if isHMV:
-        df,cat_feature = handle_missing_values(df)
+        df = handle_missing_values(df,cat_feature)
 
     # Ask the user if he would like to Handle missing values
     isEDA = st.sidebar.checkbox("Perform EDA?")
