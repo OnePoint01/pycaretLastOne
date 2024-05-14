@@ -175,7 +175,7 @@ if uploaded_file is not None:
     # Ask the user if he would like to Handle missing values
     isEDA = st.sidebar.checkbox("Perform EDA?")
     if isEDA:
-        WantedColumns = st.sidebar.multiselect("What columns do you want to analyze?", options=data.columns)
+        WantedColumns = st.sidebar.multiselect("What columns do you want to analyze?", options=df.columns)
         if WantedColumns:
             df = perform_eda(df,WantedColumns)
             
