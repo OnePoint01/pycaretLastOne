@@ -178,8 +178,9 @@ if uploaded_file is not None:
         encode_categorical(df,cat_feature)
         
     # Ask user for the target column
-    target_col = st.sidebar.selectbox("Select the target column", df.columns)
-    # Setup and compare models
-    isCM = st.sidebar.checkbox("Begin Comparing models?")
-    if isCM:
-        setup_and_compare_models(df, target_col)
+    if df is not None:
+        target_col = st.sidebar.selectbox("Select the target column", df.columns)
+        # Setup and compare models
+        isCM = st.sidebar.checkbox("Begin Comparing models?")
+        if isCM:
+            setup_and_compare_models(df, target_col)
