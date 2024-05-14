@@ -116,9 +116,9 @@ def setup_and_compare_models(df, target_col):
     st.header("Detected Task Type", TheModel)
 
     # Initialize RegressionExperiment or ClassificationExperiment based on detected task type
-    if option == 'Regression':
+    if TheModel == 'Regression':
         ModelExp = RegressionExperiment()
-    elif option == 'Classification':
+    elif TheModel == 'Classification':
         ModelExp = ClassificationExperiment()
         
     # Setup experiment with data and target variable
