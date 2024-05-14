@@ -1,150 +1,191 @@
-import streamlit as st
-import numpy as np
-import pandas as pd
-import seaborn as sns
-import matplotlib.pyplot as plt
-from sklearn.impute import SimpleImputer
-from sklearn.preprocessing import LabelEncoder
-from pycaret.regression import RegressionExperiment
-from pycaret.classification import ClassificationExperiment
+#- ask user to drop columns if he want 
+#- ask user if he want to perform eda and what columns he want to analyze 
+#- ask user to how to handle missing values for categorical columns ( mode or additional class)
+#- ask user to how to handle missing values for continous columns ( mean or median or mode)
+#- ask user to how to encode categorical data ( one hot or label encoding )
+#- use pycaret to train multiple models on the data and show me the report 
 
-# Function to perform Exploratory Data Analysis (EDA)
-def perform_eda(data):
-    st.header("Exploratory Data Analysis (EDA)")
-    # Checkbox to enable/disable EDA
-    analyze_data = st.checkbox("Perform EDA?")
-    if analyze_data:
-        # Multiselect widget to choose columns for analysis
-        columns_to_analyze = st.multiselect("Select columns for analysis:", options=data.columns)
-        if columns_to_analyze:
-            # Display histograms for selected columns
-            st.subheader("Histograms")
-            for col in columns_to_analyze:
-                plt.figure(figsize=(8, 6))
-                sns.histplot(data[col], kde=True)
-                plt.title(f"Histogram for {col}")
-                plt.xlabel(col)
-                plt.ylabel("Frequency")
-                st.pyplot()
-            # Display correlation matrix for selected columns
-            st.subheader("Correlation Matrix")
-            corr = data[columns_to_analyze].corr()
-            plt.figure(figsize=(10, 8))
-            sns.heatmap(corr, annot=True, cmap='coolwarm', fmt=".2f", linewidths=0.5)
-            plt.title("Correlation Matrix")
-            st.pyplot()
+# Import necessary libraries
+import streamlit as st
+from sklearn.preprocessing import LabelEncoder
+from sklearn.impute import SimpleImputer
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Import necessary functions from PyCaret
+from pycaret.classification import setup as setup_clf,compare_models as compare_models_clf
+from pycaret.regression import setup as setup_reg,compare_models as compare_models_reg
+
+# Function to display DataFrame information
+def display_df_info(df):
+    st.header("The Dataset Information")
+    st.write('Head of Dataset:', df.head())
+    st.write('Data Shape:', df.shape)
+    st.write('Column Names:', df.columns.tolist())
+    st.write('Column Data Types:', df.dtypes)
+    st.write('Summary Statistics:', df.describe().transpose())
+
+# Function to drop selected columns
+def drop_columns(df,dropped_columns):
+    st.header("Columns removal")
+    df = df.drop(dropped_columns, axis=1)
+    return df
+
+
+# Function to handle missing values
+def handle_missing_values(df):
+    st.header("Handle Missing Values")
+    le = LabelEncoder()
+    # ask user to how to handle missing values for categorical columns ( mode or additional class)
+    cat_feature = df.select_dtypes(['object']).columns
+    HMV_cat = st.radio("How do you want to handle missing values for categorical columns?", ['most frequent', "mode"])
+    for col in cat_feature:
+        if df[col].nunique() > 7:
+            df[col] = SimpleImputer(strategy='HMV_cat', missing_values=np.nan).fit_transform(df[col].values.reshape(-1, 1))
+        else:
+            df[col] = le.fit_transform(df[col])
+
+    if (len(cat_feature) != 0):
+        st.header("Categorical Columns")
+        st.write(cat_feature)
+
+    
+    # ask user to how to handle missing values for numerical columns ( mean or median or mode)
+    num_feature = df.select_dtypes(['int64', 'float64']).columns
+    HMV_num = st.radio("How do you want to handle missing values for numerical columns?", ["mean", "median","mode"])
+
+    for col in num_feature:
+        df[col] = SimpleImputer(strategy=HMV_num, missing_values=np.nan).fit_transform(df[col].values.reshape(-1, 1))
+
+    if (len(num_feature) != 0):
+        st.header("Numerical Columns")
+        st.write(num_feature)
+
+    if (len(cat_feature) != 0 or len(num_feature) != 0):
+        st.header("Number of null values")
+        st.write(df.isna().sum())
+    
+    return df,cat_feature
+
+# Function to perform EDA
+def perform_eda(df,WantedColumns):
+    st.header("EDA")
+    # Correlation Matrix"
+    st.subheader("Correlation Matrix")
+    corr = df[WantedColumns].corr()
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(corr, annot=True, cmap='coolwarm', fmt=".2f", linewidths=0.5)
+    plt.title("Correlation Matrix")
+    st.pyplot()
+    # Histograms
+    st.subheader("Histograms")
+    for col in WantedColumns:
+        plt.figure(figsize=(8, 6))
+        sns.histplot(df[col], kde=True)
+        plt.title(f"Histogram for {col}")
+        plt.xlabel(col)
+        plt.ylabel("Frequency")
+        st.pyplot()
 
 # Function to encode categorical data
-def encode_categorical(data):
-    categorical_features = data.select_dtypes(include=['object']).columns
-    # Radio button to choose encoding method for categorical data
-    encoding_method = st.radio("Select encoding method for categorical data:", ("Label Encoding", "One-Hot Encoding"))
+def encode_categorical(df,cat_feature):
+    le = LabelEncoder()
+    encoding_method = st.radio("How to encode categorical data?", ("Label Encoding", "One-Hot Encoding"))
     if encoding_method == "Label Encoding":
         # Apply Label Encoding to categorical columns
-        for col in categorical_features:
-            data[col] = LabelEncoder().fit_transform(data[col])
+        for col in cat_feature:
+            df[col] = le.fit_transform(df[col])
+        st.write(df.head())
+    else:
+        encoder = OneHotEncoder(handle_unknown='ignore')
+        for col in cat_feature:
+            encoder_df = df(encoder.fit_transform(df[col]).toarray())
+            final_df = df.join(encoder_df)
+            final_df.drop(col, axis=1, inplace=True)
+        st.write(df.head())
 
-# Function to choose X and Y variables
-def choose_variables(data):
-    st.header("Choose X and Y variables")
-    # Multiselect widget to choose independent variables (X)
-    X_variables = st.multiselect("Select independent variables (X):", options=data.columns)
-    # Selectbox widget to choose dependent variable (Y)
-    Y_variable = st.selectbox("Select dependent variable (Y):", options=data.columns)
-    return X_variables, Y_variable
+# Function to setup and compare models
+def setup_and_compare_models(df, target_col):
+    if df[target_col].dtype in ['int64', 'float64']:
+        TheModel = "Regression"
+    else:
+        TheModel = "Classification"
+        
+    st.header("Detected Task Type", TheModel)
 
-# Main function to run the app
-def main():
-    # Sidebar with steps for algorithm prediction accuracy
-    st.sidebar.header("Steps to get the algorithms prediction accuracy")
-    st.sidebar.text("1- Upload CSV or Excel file")
-    st.sidebar.text("2- Choose target feature")
-    st.sidebar.text("3- Remove unimportant features")
+    # Initialize RegressionExperiment or ClassificationExperiment based on detected task type
+    if option == 'Regression':
+        ModelExp = RegressionExperiment()
+    elif option == 'Classification':
+        ModelExp = ClassificationExperiment()
+        
+    # Setup experiment with data and target variable
+    ModelExp.setup(data, target=target_col, session_id=123)
+    # Compare models and select best performing model
+    best = ModelExp.compare_models()
+    st.header("Best Algorithm")
+    st.write(best)
+    # Evaluate best model
+    st.write(s.evaluate_model(best))
+    # Make predictions using best model
+    st.header("30 rows of Prediction")
+    predictions = ModelExp.predict_model(best, data=data, raw_score=True)
+    st.write(predictions.head(30))
+    
+    if pd.api.types.is_numeric_dtype(df[target_col]):
+        exp_reg = setup_reg(data = df, target = target_col, session_id=123, verbose=False)
+        best_model = compare_models_reg()
+    else:
+        exp_clf = setup_clf(data = df, target = target_col, session_id=123, verbose=False)
+        best_model = compare_models_clf()
+    st.write(best_model)
 
-    data = pd.DataFrame()
-    target = ""
+# Title of the app
+st.title('PyCaret & Streamlit App Capstone')
 
-    # Step 1: Upload dataset
-    dataset = st.file_uploader("Upload CSV or Excel file", type=['csv', 'xlsx'])
-    if dataset is not None:
-        # Read uploaded dataset into a DataFrame
-        if "csv" in dataset.name:
-            data = pd.read_csv(dataset)
-        elif "xlsx" in dataset.name:
-            data = pd.read_excel(dataset)
-        st.write(data.head())
-        st.write(data.shape)
+# Add a sidebar
+st.sidebar.title("Settings Sidebar")
 
-        # Step 2: Choose target variable
-        target = st.selectbox("Choose the target variable:", options=data.columns)
+# Add a file uploader to the sidebar
+uploaded_file = st.sidebar.file_uploader(label="Upload your input CSV file", type=['csv'])
 
-        # Step 4: Perform EDA
-        perform_eda(data)
+# Check if a file is uploaded
+if uploaded_file is not None:
+    # Read the uploaded file
+    df = pd.read_csv(uploaded_file)
 
-        # Step 5: Encode categorical data
-        encode_categorical(data)
+    # Show the uploaded file
+    st.write('The full Dataset:',df)
 
-        # Step 3: Remove unimportant features
-        select_columns = st.multiselect("Select features to remove from the dataframe:", options=data.columns)
-        if select_columns:
-            # Remove selected columns from the DataFrame
-            data.drop(select_columns, axis=1, inplace=True)
+    # Display DataFrame information
+    display_df_info(df)
 
-        # Step 6: Choose X and Y variables
-        X_variables, Y_variable = choose_variables(data)
+    # ask user to drop columns if he want 
+    dropped_columns = st.sidebar.multiselect("Select the columns you like to drop: ", df.columns)
+    if dropped_columns:
+        df = drop_columns(df,dropped_columns)
+    
+    # Ask the user if he would like to Handle missing values
+    isHMV = st.sidebar.checkbox("Handle Missing Values?")
+    if isHMV:
+        df,cat_feature = handle_missing_values(df)
 
-        # Step 7: Perform preprocessing if needed
-        numerical_features = data.select_dtypes(['int64', 'float64']).columns
-        categorical_feature = data.select_dtypes(['object']).columns
-        missing_value_num = st.radio("Set missing value for numerical value 👇", ["mean", "median"])
-        missing_value_cat = st.radio("Set missing value for categorical value 👇", ['most frequent', "put additional class"])
+    # Ask the user if he would like to Handle missing values
+    isEDA = st.sidebar.checkbox("Perform EDA?")
+    if isEDA:
+        WantedColumns = st.sidebar.multiselect("What columns do you want to analyze?", options=data.columns)
+        if WantedColumns:
+            df = perform_eda(df,WantedColumns)
+            
+    # ask user to how to encode categorical data ( one hot or label encoding )        
+    if cat_feature:
+        encode_categorical(df,cat_feature)
+        
+    # Ask user for the target column
+    target_col = st.sidebar.selectbox("Select the target column", df.columns)
 
-        # Impute missing values for numerical and categorical features
-        for col in numerical_features:
-            data[col] = SimpleImputer(strategy=missing_value_num, missing_values=np.nan).fit_transform(
-                data[col].values.reshape(-1, 1))
-        for col in categorical_feature:
-            if data[col].nunique() > 7:
-                data[col] = SimpleImputer(strategy='most_frequent', missing_values=np.nan).fit_transform(
-                    data[col].values.reshape(-1, 1))
-            else:
-                data[col] = LabelEncoder().fit_transform(data[col])
-
-        # Display information about numerical and categorical columns, and number of null values
-        if (len(numerical_features) != 0):
-            st.header("Numerical Columns")
-            st.write(numerical_features)
-        if (len(categorical_feature) != 0):
-            st.header("Categorical columns")
-            st.write(categorical_feature)
-        if (len(categorical_feature) != 0 or len(numerical_features) != 0):
-            st.header("Number of null values")
-            st.write(data.isna().sum())
-
-        # Step 8: Perform model comparison and prediction
-        if target and X_variables and Y_variable:
-            # Detect task type (Regression or Classification)
-            option = "Regression" if data[Y_variable].dtype in ['int64', 'float64'] else "Classification"
-            st.header(f"Detected Task Type: {option}")
-
-            # Initialize RegressionExperiment or ClassificationExperiment based on detected task type
-            if option == 'Regression':
-                s = RegressionExperiment()
-            elif option == 'Classification':
-                s = ClassificationExperiment()
-
-            # Setup experiment with data and target variable
-            s.setup(data, target=Y_variable, session_id=123)
-            # Compare models and select best performing model
-            best = s.compare_models()
-            st.header("Best Algorithm")
-            st.write(best)
-            # Evaluate best model
-            st.write(s.evaluate_model(best))
-            # Make predictions using best model
-            st.header("30 rows of Prediction")
-            predictions = s.predict_model(best, data=data, raw_score=True)
-            st.write(predictions.head(30))
-
-if __name__ == "__main__":
-    main()
+    # Setup and compare models
+    if target_col:
+        setup_and_compare_models(df, target_col)
