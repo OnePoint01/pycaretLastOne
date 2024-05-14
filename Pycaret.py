@@ -1,10 +1,3 @@
-#- ask user to drop columns if he want 
-#- ask user if he want to perform eda and what columns he want to analyze 
-#- ask user to how to handle missing values for categorical columns ( mode or additional class)
-#- ask user to how to handle missing values for continous columns ( mean or median or mode)
-#- ask user to how to encode categorical data ( one hot or label encoding )
-#- use pycaret to train multiple models on the data and show me the report 
-
 # Import necessary libraries
 import streamlit as st
 from sklearn.preprocessing import LabelEncoder,OneHotEncoder
@@ -181,12 +174,13 @@ if uploaded_file is not None:
             df = perform_eda(df,WantedColumns)
             
     # ask user to how to encode categorical data ( one hot or label encoding )        
-    if cat_feature != 0:
+    isECD = st.sidebar.checkbox("Encode Categorical Data?")
+    if isECD:
         encode_categorical(df,cat_feature)
         
     # Ask user for the target column
     target_col = st.sidebar.selectbox("Select the target column", df.columns)
-
     # Setup and compare models
-    if target_col:
+    isCM = st.sidebar.checkbox("Begin Comparing models?")
+    if isCM:
         setup_and_compare_models(df, target_col)
