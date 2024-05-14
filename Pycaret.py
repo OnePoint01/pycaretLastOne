@@ -122,16 +122,16 @@ def setup_and_compare_models(df, target_col):
         ModelExp = ClassificationExperiment()
         
     # Setup experiment with data and target variable
-    ModelExp.setup(data, target=target_col, session_id=123)
+    ModelExp.setup(df, target=target_col, session_id=123)
     # Compare models and select best performing model
     best = ModelExp.compare_models()
     st.header("Best Algorithm")
     st.write(best)
     # Evaluate best model
-    st.write(s.evaluate_model(best))
+    st.write(ModelExp.evaluate_model(best))
     # Make predictions using best model
     st.header("30 rows of Prediction")
-    predictions = ModelExp.predict_model(best, data=data, raw_score=True)
+    predictions = ModelExp.predict_model(best, data=df, raw_score=True)
     st.write(predictions.head(30))
     
     if pd.api.types.is_numeric_dtype(df[target_col]):
