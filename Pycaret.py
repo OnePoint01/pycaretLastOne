@@ -15,8 +15,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 # Import necessary functions from PyCaret
-from pycaret.classification import setup as setup_clf,compare_models as compare_models_clf
-from pycaret.regression import setup as setup_reg,compare_models as compare_models_reg
+from pycaret.classification import setup as setup_clf,compare_models as compare_models_clf,RegressionExperiment
+from pycaret.regression import setup as setup_reg,compare_models as compare_models_reg,ClassificationExperiment
 
 # Function to display DataFrame information
 def display_df_info(df):
